@@ -33,3 +33,55 @@
 - Great Expectations로 데이터 품질 체크 고도화  
 - Slack 알림 연동 (태스크 실패 시 알림)  
 - Streamlit 대시보드 초안 만들기 (DAU/국가/디바이스 breakdown)
+
+
+
+
+## 일부 작업 코드
+
+### 4) Airflow 웹서버 & 스케줄러 실행
+
+터미널 2개를 열어서 각각 아래처럼 실행합니다.
+(두 터미널 모두 가상환경 .venv가 켜져 있어야 spark-submit을 찾습니다!)
+
+```
+터미널 A:
+
+source .venv/bin/activate
+export AIRFLOW_HOME="$(pwd)/infra/airflow"
+airflow webserver --port 8080
+
+
+터미널 B:
+
+source .venv/bin/activate
+export AIRFLOW_HOME="$(pwd)/infra/airflow"
+airflow scheduler
+```
+
+
+### 5) DAG 실행
+
+브라우저 열고: http://localhost:8080
+로그인: admin / admin
+DAGs 목록에서 local_data_pipeline 토글 On
+오른쪽 Play ▶️ (Trigger DAG) 클릭
+그래프 뷰에서 generate_raw → spark_clean → data_quality_check → spark_agg 순서로 실행되는지 확인
+
+
+### 6) 결과 확인
+
+파일들이 잘 생겼는지 체크
+
+```
+ls -lah data/raw | head
+ls -lah data/clean/date=2025-09-12
+ls -lah data/agg/date=2025-09-12
+```
+
+빠르게 내용 보기 (PySpark 인터랙티브)
+```
+from pyspark.sql import SparkSession
+spark = SparkSession.builder.getOrCreate()
+spark.read.parquet("data/agg/date=2025-09-12").show(truncate=False)
+```
